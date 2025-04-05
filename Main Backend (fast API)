@@ -1,0 +1,62 @@
+from fastapi import FastAPI, File, UploadFile
+import pandas as pd
+from typing import List
+from io import StringIO
+import numpy as np
+from datetime import datetime, timedelta
+
+app = FastAPI(title="DataResolve: Business Intelligence")
+
+# Motha's Second Law Function (Interaction Model)
+def mothas_second_law(data):
+    data['PrevSales'] = data['Sales'].shift(1).fillna(method='bfill')
+    data['Interaction'] = data['Sales'] * data['PrevSales']
+    coef = 0.25
+    intercept = 100
+    data['Forecast'] = coef * data['Interaction'] + intercept
+    return data
+
+# CLV Estimator
+def estimate_clv(df):
+    avg_value = df['Sales'].mean()
+    retention_rate = 0.7
+    clv = avg_value * retention_rate / (1 - retention_rate)
+    return round(clv, 2)
+
+@app.post("/upload_csv/")
+async def upload_csv(file: UploadFile = File(...)):
+    contents = await file.read()
+    df = pd.read_csv(StringIO(contents.decode()))
+    
+    if 'Date' not in df.columns or 'Sales' not in df.columns:
+        return {"error": "CSV must contain 'Date' and 'Sales' columns."}
+
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.sort_values('Date')
+
+    # Apply Motha's Second Law for forecasting
+    result = mothas_second_law(df)
+
+    # Forecast next 7 days
+    last_date = result['Date'].iloc[-1]
+    next_dates = [last_date + timedelta(days=i) for i in range(1, 8)]
+    last_interaction = result['Interaction'].iloc[-1]
+    forecast_next = [0.25 * last_interaction + 100 for _ in next_dates]
+
+    forecast_df = pd.DataFrame({
+        'Date': next_dates,
+        'Forecast': forecast_next
+    })
+
+    # Estimate CLV
+    clv = estimate_clv(df)
+
+    # Staff Suggestion
+    avg_sales = df['Sales'].mean()
+    busy_days = df[df['Sales'] > avg_sales * 1.2]['Date'].dt.strftime('%Y-%m-%d').tolist()
+
+    return {
+        "forecast_next_7_days": forecast_df.to_dict(orient="records"),
+        "suggest_additional_staff_on": busy_days,
+        "estimated_clv": clv
+    }
