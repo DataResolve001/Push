@@ -1,3 +1,5 @@
----
-
-Let me know if you want me to generate the `requirements.txt`, `.gitignore`, or help push all of this to GitHub right now.
+fastapi
+uvicorn
+pandas
+numpy
+python-multipart
