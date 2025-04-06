@@ -3,4 +3,6 @@ uvicorn
 pandas
 scikit-learn
 gunicorn
+numpy
+python-multipart
 # any other dependencies
