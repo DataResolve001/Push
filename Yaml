@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: dataresolve-app
+    env: python
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app
+    repo: https://github.com/DataResolve/DataResolve
+    branch: main
+    plan: free
